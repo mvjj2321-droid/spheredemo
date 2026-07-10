@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sphere — Local Voice Pipeline</title>
+<style>
+  :root{
+    --bg:#ffffff;
+    --panel:#ffffff;
+    --line:#e6e8ec;
+    --text:#14171c;
+    --mist:#6b7280;
+
+    --blue:#2f6fed;
+    --indigo:#6d5bf5;
+    --teal:#0fa89c;
+    --amber:#e8960a;
+    --violet:#9455e8;
+    --rose:#ef4d78;
+    --green:#22a35a;
+    --pink:#e6489c;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    padding:56px 24px 80px;
+    min-height:100vh;
+  }
+  .wrap{max-width:1180px;margin:0 auto;}
+
+  .top{margin-bottom:44px;}
+  .eyebrow{
+    font-family:'SF Mono',SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:12px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--blue);
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:14px;
+  }
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--blue);box-shadow:0 0 0 0 rgba(47,111,237,.6);animation:ping 2.2s infinite;}
+  @keyframes ping{
+    0%{box-shadow:0 0 0 0 rgba(47,111,237,.45);}
+    70%{box-shadow:0 0 0 8px rgba(47,111,237,0);}
+    100%{box-shadow:0 0 0 0 rgba(47,111,237,0);}
+  }
+  h1{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+    font-weight:700;
+    font-size:clamp(28px,4vw,44px);
+    line-height:1.05;
+    margin:0 0 14px;
+    letter-spacing:-0.01em;
+    color:#0a0c10;
+  }
+  h1 span{color:var(--blue);}
+  .sub{color:var(--mist);font-size:15px;max-width:560px;line-height:1.55;}
+
+  .layout{display:flex;gap:18px;align-items:stretch;}
+  .grid{
+    flex:1;
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    grid-auto-rows:auto;
+    gap:14px;
+  }
+
+  .card{
+    --accent:var(--blue);
+    --bg2:#f2f4f8;
+    --fg2:var(--text);
+    background:var(--bg2);
+    border:1px solid rgba(0,0,0,.05);
+    border-radius:20px;
+    padding:22px 24px;
+    position:relative;
+    overflow:hidden;
+    box-shadow:0 1px 2px rgba(16,24,40,.04);
+    transition:box-shadow .25s ease, transform .25s ease;
+  }
+  .card:hover{box-shadow:0 10px 28px rgba(16,24,40,.12);transform:translateY(-2px);}
+
+  .c-blue{--accent:var(--blue);--bg2:#e2ecff;--fg2:#173d8c;}
+  .c-indigo{--accent:var(--indigo);--bg2:#e7e2fd;--fg2:#3a2686;}
+  .c-teal{--accent:var(--teal);--bg2:#d7f4f0;--fg2:#0b5f56;}
+  .c-amber{--accent:var(--amber);--bg2:#fdedcb;--fg2:#7a4d02;}
+  .c-violet{--accent:var(--violet);--bg2:#efe1fc;--fg2:#5b2e8c;}
+  .c-rose{--accent:var(--rose);--bg2:#fde1e8;--fg2:#8c1f3f;}
+  .c-green{--accent:var(--green);--bg2:#dcf5e3;--fg2:#146c34;}
+  .c-pink{--accent:var(--pink);--bg2:#fbe0ef;--fg2:#8c1f66;}
+
+  .step{
+    font-family:'SF Mono',SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:11px;
+    color:var(--fg2);
+    letter-spacing:.08em;
+    margin-bottom:10px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .step b{color:var(--fg2);font-weight:700;}
+
+  .card h3{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+    font-size:18px;
+    font-weight:600;
+    margin:0 0 4px;
+    color:var(--fg2);
+  }
+  .card p{
+    margin:0;
+    color:var(--fg2);
+    font-size:13.5px;
+    line-height:1.5;
+  }
+  .icon{
+    width:34px;height:34px;
+    border-radius:9px;
+    display:flex;align-items:center;justify-content:center;
+    margin-bottom:14px;
+    background:rgba(255,255,255,.55);
+    border:1px solid rgba(255,255,255,.7);
+    color:var(--fg2);
+  }
+  .icon svg{width:18px;height:18px;}
+
+  /* --- placements --- */
+  .hero{grid-column:1/5;display:flex;justify-content:space-between;align-items:center;}
+  .hero .left{max-width:70%;}
+  .badge{
+    font-family:'SF Mono',SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:11px;color:var(--fg2);
+    border:1px solid rgba(255,255,255,.7);
+    background:rgba(255,255,255,.5);
+    padding:5px 10px;border-radius:999px;
+    white-space:nowrap;
+  }
+
+  .backend{grid-column:1/5;}
+
+  .link-row{
+    grid-column:1/5;
+    height:22px;
+    position:relative;
+    display:flex;
+    justify-content:center;
+  }
+  .link-row::before{
+    content:"";
+    position:absolute;
+    top:-15px;bottom:-15px;
+    width:3px;
+    left:50%;transform:translateX(-50%);
+    background-image:linear-gradient(180deg, var(--link, #c7cbd3) 55%, transparent 45%);
+    background-size:3px 12px;
+    animation:flowV 1s linear infinite;
+    border-radius:3px;
+  }
+  .link-row::after{
+    content:"";
+    position:absolute;
+    top:50%;left:50%;
+    transform:translate(-50%,-50%);
+    width:9px;height:9px;
+    border-radius:50%;
+    background:var(--link, #c7cbd3);
+  }
+  @keyframes flowV{to{background-position-y:-12px;}}
+
+  .proc{grid-column:span 1;}
+
+  .out-speaker{grid-column:1/3;}
+  .out-orb{grid-column:3/5;}
+  .orb-pulse{
+    position:absolute;right:18px;top:18px;
+    width:46px;height:46px;border-radius:50%;
+    background:radial-gradient(circle, rgba(230,72,156,.35), transparent 70%);
+    animation:breathe 2.6s ease-in-out infinite;
+  }
+  @keyframes breathe{
+    0%,100%{transform:scale(.85);opacity:.6;}
+    50%{transform:scale(1.15);opacity:1;}
+  }
+
+  .conduit{
+    width:64px;
+    flex-shrink:0;
+    position:relative;
+  }
+  .conduit svg{width:100%;height:100%;overflow:visible;}
+  .conduit .loop-path{
+    fill:none;
+    stroke:var(--pink);
+    stroke-width:2;
+    stroke-linecap:round;
+    stroke-dasharray:6 8;
+    animation:dashmove 1.8s linear infinite;
+    opacity:.85;
+  }
+  @keyframes dashmove{to{stroke-dashoffset:-28;}}
+  .conduit-label{
+    position:absolute;
+    top:50%;left:50%;
+    transform:translate(-50%,-50%) rotate(90deg);
+    font-family:'SF Mono',SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:10px;
+    letter-spacing:.1em;
+    color:var(--mist);
+    white-space:nowrap;
+    text-transform:uppercase;
+  }
+
+  .demo{
+    margin-top:22px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-top:3px solid var(--indigo);
+    border-radius:16px;
+    padding:22px 24px 24px;
+    box-shadow:0 1px 2px rgba(16,24,40,.04);
+  }
+  .demo .step b{color:var(--indigo);}
+  .demo h3{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+    font-size:18px;font-weight:600;margin:0 0 4px;color:#0a0c10;
+  }
+  .demo p{margin:0 0 16px;color:var(--mist);font-size:13.5px;}
+  .demo video{
+    width:100%;
+    aspect-ratio:16/9;
+    max-height:none;
+    display:block;
+    border-radius:10px;
+    background:#0b0e13;
+    border:1px solid var(--line);
+    object-fit:cover;
+  }
+
+  footer{
+    max-width:1180px;margin:36px auto 0;
+    color:var(--mist);
+    font-family:'SF Mono',SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:11.5px;
+    display:flex;gap:18px;flex-wrap:wrap;
+    border-top:1px solid var(--line);
+    padding-top:18px;
+  }
+  footer b{color:var(--text);font-weight:500;}
+
+  @media (max-width:860px){
+    .grid{grid-template-columns:repeat(2,1fr);}
+    .out-speaker,.out-orb{grid-column:span 2;}
+    .conduit{display:none;}
+    .hero{flex-direction:column;align-items:flex-start;gap:12px;}
+    .hero .left{max-width:100%;}
+  }
+  @media (max-width:560px){
+    .grid{grid-template-columns:1fr;}
+    .proc,.out-speaker,.out-orb{grid-column:1/2;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <div class="eyebrow"><span class="dot"></span>Signal path · local &amp; streaming end-to-end</div>
+    <h1>The <span>Sphere</span> voice pipeline</h1>
+    <p class="sub">Audio in, audio out, nothing leaves the machine. Every stage streams into the next — no waiting for a full sentence, a full reply, or a full clip.</p>
+  </div>
+
+  <div class="layout">
+    <div class="grid">
+
+      <div class="card hero c-blue">
+        <div class="left">
+          <div class="step"><b>01</b> Frontend / Browser UI</div>
+          <h3>sphere.html</h3>
+          <p>Opens the mic, renders the orb, and streams tokens and audio back to the person in real time.</p>
+        </div>
+        <span class="badge">HTTP / WebSocket ↕</span>
+      </div>
+
+      <div class="link-row" style="--link:#6d5bf5"></div>
+
+      <div class="card backend c-indigo">
+        <div class="step"><b>02</b> FastAPI / Flask backend</div>
+        <h3>app.py</h3>
+        <p>Owns the socket connection and routes audio and text between the browser and every model below.</p>
+      </div>
+
+      <div class="link-row" style="--link:#0fa89c"></div>
+
+      <div class="card proc c-teal">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
+        </div>
+        <div class="step"><b>03</b> Input device</div>
+        <h3>Microphone</h3>
+        <p>Raw audio captured straight from the browser, no intermediate file.</p>
+      </div>
+
+      <div class="card proc c-amber">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h3l2-8 4 16 3-11 2 5h6"/></svg>
+        </div>
+        <div class="step"><b>04</b> Speech → text</div>
+        <h3>Whisper STT</h3>
+        <p>Transcribes in a rolling stream, word by word, as you speak.</p>
+      </div>
+
+      <div class="card proc c-violet">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>
+        </div>
+        <div class="step"><b>05</b> Reasoning</div>
+        <h3>Ollama LLM</h3>
+        <p>Local model, generating and streaming its reply token by token.</p>
+      </div>
+
+      <div class="card proc c-rose">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h3l2-8 4 16 3-11 2 5h6"/></svg>
+        </div>
+        <div class="step"><b>06</b> Text → speech</div>
+        <h3>Kokoro TTS</h3>
+        <p>Turns each finished phrase into audio as soon as it's ready — no waiting on the full response.</p>
+      </div>
+
+      <div class="link-row" style="--link:#22a35a"></div>
+
+      <div class="card out-speaker c-green">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+        </div>
+        <div class="step"><b>07</b> Output device</div>
+        <h3>Speaker</h3>
+        <p>Plays the synthesized audio as it streams in, no full-clip buffering.</p>
+      </div>
+
+      <div class="card out-orb c-pink">
+        <div class="orb-pulse"></div>
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><ellipse cx="12" cy="12" rx="10" ry="4"/><ellipse cx="12" cy="12" rx="4" ry="10"/></svg>
+        </div>
+        <div class="step"><b>08</b> Visualization</div>
+        <h3>sphere.html — orb</h3>
+        <p>The browser reacts to the audio in flight, driving the orb's motion, then loops the connection back to step 01.</p>
+      </div>
+
+    </div>
+
+    <div class="conduit">
+      <svg viewBox="0 0 64 640" preserveAspectRatio="none">
+        <path class="loop-path" d="M8 600 C 50 600, 56 560, 56 500 L 56 100 C 56 40, 50 20, 8 20" />
+        <path d="M8 20 l 12 -6 l 0 12 z" fill="var(--pink)" />
+      </svg>
+      <div class="conduit-label">loop back to browser</div>
+    </div>
+  </div>
+
+  <div class="demo">
+    <div class="step"><b>DEMO</b> Watch it run</div>
+    <h3>Sphere in action</h3>
+    <p>A full pass through the pipeline above, mic to orb.</p>
+    <video controls preload="metadata">
+      <source src="sphere.MP4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+  </div>
+
+  <footer>
+    <div><b>Transport:</b> HTTP / WebSocket</div>
+    <div><b>Runtime:</b> fully local — mic to speaker</div>
+    <div><b>Pattern:</b> every stage streams, none of them wait</div>
+  </footer>
+</div>
+</body>
+</html>
